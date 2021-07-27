@@ -2,10 +2,12 @@ const { DateTime } = require('luxon');
 const readingTime = require('eleventy-plugin-reading-time');
 const pluginRss = require('@11ty/eleventy-plugin-rss');
 const syntaxHighlight = require('@11ty/eleventy-plugin-syntaxhighlight');
+const htmlmin = require('html-minifier')
 const fs = require('fs');
 const path = require('path');
 
 const isDev = process.env.APP_ENV === 'development';
+const isProd = process.env.ELEVENTY_ENV === 'production'
 
 const manifestPath = path.resolve(
   __dirname,
@@ -66,6 +68,10 @@ module.exports = function (eleventyConfig) {
     return DateTime.fromJSDate(dateObj, { zone: 'utc' }).toFormat('yyyy-LL-dd');
   });
 
+  eleventyConfig.addFilter('dateToIso', (dateString) => {
+    return new Date(dateString).toISOString()
+  });
+
   eleventyConfig.addFilter('head', (array, n) => {
     if (n < 0) {
       return array.slice(n);
@@ -110,6 +116,18 @@ module.exports = function (eleventyConfig) {
       .filter((tag) => {
         return !generalTags.includes(tag);
       });
+  });
+
+  eleventyConfig.addTransform('htmlmin', function(content, outputPath) {
+    if ( outputPath && outputPath.endsWith(".html") && isProd) {
+      return htmlmin.minify(content, {
+        removeComments: true,
+        collapseWhitespace: true,
+        useShortDoctype: true,
+      });
+    }
+
+    return content;
   });
 
   return {
